@@ -4,6 +4,10 @@ This package defines the contract every platform connector implements and
 provides shared infrastructure (cursor persistence, rate limiting, dedup,
 HTTP/text helpers). Each platform lives in its own subpackage.
 
+For the broader system design (where connectors sit in the pipeline,
+how their output flows through dedup → archive → enrich → index), see
+[`docs/architecture.md`](../../../docs/architecture.md).
+
 ## Contract
 
 ```go

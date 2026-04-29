@@ -4,6 +4,9 @@ Enrichment is a plug-in chain that runs after dedup + raw archive and
 before indexing. Each plugin is an external HTTP service that receives a
 SocialEvent envelope and returns annotations to merge onto the event.
 
+For chain semantics (sequence diagrams, error isolation, ordering) see
+[`docs/architecture.md` § Enrichment plugins](../../../docs/architecture.md#9-enrichment-plugins).
+
 ## Pipeline position
 
 ```

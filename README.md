@@ -7,8 +7,8 @@ indexes them for full-text + filtered search, archives the original
 payloads, and runs a configurable chain of enrichment plugins (sentiment,
 NER, classifiers) before serving them through a search API and React UI.
 
-The full product vision and roadmap is in
-[`social_media_monitoring_workbench_plan.md`](./social_media_monitoring_workbench_plan.md).
+- [`docs/architecture.md`](./docs/architecture.md) — design + diagrams (component view, event lifecycle, pipeline stages, dedup, archive, enrichment).
+- [`social_media_monitoring_workbench_plan.md`](./social_media_monitoring_workbench_plan.md) — product vision and roadmap.
 
 ## Quick start
 
