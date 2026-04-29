@@ -1,0 +1,128 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: socialmonitor
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  opensearch:
+    image: opensearchproject/opensearch:2.12.0
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - osdata:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200 | grep -q 'cluster_name'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.12.0
+    environment:
+      - OPENSEARCH_HOSTS=["http://opensearch:9200"]
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
+    ports:
+      - "5601:5601"
+    depends_on:
+      opensearch:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.1.1
+    command:
+      - redpanda
+      - start
+      - --smp 1
+      - --memory 512M
+      - --overprovisioned
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
+      - --advertise-pandaproxy-addr internal://redpanda:8082,external://localhost:18082
+    ports:
+      - "19092:19092"
+      - "18082:18082"
+    volumes:
+      - rpdata:/var/lib/redpanda/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "18080:8080"
+    volumes:
+      - rawarchive:/var/lib/raw_archive
+    environment:
+      PORT: "8080"
+      OPENSEARCH_URL: "http://opensearch:9200"
+      OPENSEARCH_USERNAME: ""
+      OPENSEARCH_PASSWORD: ""
+      OPENSEARCH_INDEX: "social_events"
+      POSTGRES_DSN: "postgres://postgres:postgres@postgres:5432/socialmonitor?sslmode=disable"
+      REDIS_ADDR: "redis:6379"
+      RAW_ARCHIVE_PATH: "/var/lib/raw_archive"
+      BLUESKY_ENABLED: "true"
+      HN_ENABLED: "true"
+      RSS_ENABLED: "false"
+      REDDIT_ENABLED: "true"
+      REDDIT_SUBREDDITS: "programming,golang,technology"
+      REDDIT_POLL_INTERVAL: "1m"
+      REDDIT_USER_AGENT: "social-monitoring/0.1 (workbench MVP; +https://github.com/yourorg/social-monitoring)"
+      MASTODON_ENABLED: "true"
+      MASTODON_FEEDS: "fosstodon.org:public,mastodon.social:tag:opensource,fosstodon.org:tag:golang"
+      MASTODON_POLL_INTERVAL: "30s"
+      DISCOURSE_ENABLED: "true"
+      DISCOURSE_FORUMS: "https://meta.discourse.org"
+      DISCOURSE_POLL_INTERVAL: "2m"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: "http://localhost:18080"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  osdata:
+  rpdata:
+  rawarchive:
