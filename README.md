@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="Social Media Monitoring logo" width="180">
+</p>
+
 # Social Media Monitoring Workbench
 
 An investigation-grade workbench for monitoring, searching, and acting on
